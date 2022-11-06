@@ -39,6 +39,7 @@ module.exports = async (req, res) => {
       raw: true,
       where: {
         sv_ip: sv_ip,
+        type: "dlv2",
         active: 1,
         work: 0,
       },
@@ -82,12 +83,42 @@ module.exports = async (req, res) => {
       return res.json({ status: false, msg: `files_not_empty`, e: 2 });
 
     let process_data = {};
+
+    process_data.quality = "default";
+
+    if (file?.type == "gdrive") {
+      let source = await getSourceGdrive(file?.source);
+      
+      if (source?.status == "ok") {
+        let allow = ["file_1080", "file_720", "file_480", "file_360"];
+        let quality = [];
+
+        for (const key in allow) {
+          let q = allow[key];
+          if (source[q] !== undefined) {
+            quality.push(q.split("file_")[1]);
+          }
+        }
+        
+        if(quality.length > 0){
+          //console.log(quality)
+          process_data.quality = quality.join(',');
+        }
+      } else {
+        return res.json({
+          status: false,
+          msg: "gdrive not data",
+        });
+      }
+
+    }
+
     process_data.uid = file?.uid;
     process_data.sid = server?.id;
     process_data.fid = file?.id;
     process_data.type = "dlv2";
     process_data.slug = file?.slug;
-    process_data.quality = "all";
+    //return res.json({ status: false, msg: process_data });
     const create = await Progress.create(process_data);
 
     if (!create?.id) return res.json({ status: false, msg: `db_false` });
@@ -106,9 +137,10 @@ module.exports = async (req, res) => {
         silent: true,
       }
     );
+    await timeSleep(2);
 
     shell.exec(
-      `sudo bash ${global.dir}/shell/download.sh ${slug}`,
+      `sudo bash ${global.dir}/shell/download.sh ${file?.slug}`,
       { async: false, silent: false },
       function (data) {}
     );
