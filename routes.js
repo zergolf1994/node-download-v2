@@ -9,12 +9,17 @@ router.all("/", (req, res) =>
 );
 
 router.get("/run", require("./controllers/run"));
-router.get("/start", require("./controllers/start"));
+router.get("/dl/run", require("./controllers/dl.run"));
+router.get("/start", require("./controllers/dl.start"));
+router.get("/data", require("./controllers/dl.data"));
+router.get("/backup", require("./controllers/dl.backup"));
+router.get("/done", require("./controllers/dl.done"));
+router.get("/percent", require("./controllers/dl.percent"));
 
 router.all("/rename", require("./controllers/rename"));
 
 //server
-//router.get("/server/create", require("./controllers/server.create"));
+router.get("/server/create", require("./controllers/server.create"));
 //gdrive info
 //router.get("/gdrive/info", require("./controllers/gdrive.info"));
 

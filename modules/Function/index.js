@@ -5,12 +5,12 @@ const User = require("../Mysql/Users");
 const Files = require("../Mysql/Files");
 const UserSettings = require("../Mysql/Users.settings");
 const Settings = require("../Mysql/Settings");
+const fs = require("fs");
 
 exports.timeSleep = async (sec) => {
   if (!sec) {
     sec = Math.floor(Math.random() * 10);
   }
-  console.log("timeSleep", sec);
   return new Promise((rs) => setTimeout(rs, sec * 1000));
 };
 
@@ -75,10 +75,12 @@ exports.ExistsEmail = async (email) => {
   }
   return data;
 };
-exports.ExistsDir = async (title , uid) => {
+exports.ExistsDir = async (title, uid) => {
   let data = {};
   try {
-    const result = await Files.findOne({ where: { title: title , type : "0f" , uid: uid } });
+    const result = await Files.findOne({
+      where: { title: title, type: "0f", uid: uid },
+    });
     if (result) {
       data.status = true;
       data.result = result;
@@ -93,10 +95,12 @@ exports.ExistsDir = async (title , uid) => {
   return data;
 };
 
-exports.ExistsLinks = async (uid , type , source) => {
+exports.ExistsLinks = async (uid, type, source) => {
   let data = {};
   try {
-    const result = await Files.findOne({ where: { uid: uid , type : type ,  source: source } });
+    const result = await Files.findOne({
+      where: { uid: uid, type: type, source: source },
+    });
     if (result) {
       data.status = true;
       data.result = result;
@@ -114,7 +118,7 @@ exports.ExistsLinks = async (uid , type , source) => {
 exports.FindDir = async (slug) => {
   let data = {};
   try {
-    const result = await Files.findOne({ where: { type : "0f" , slug: slug } });
+    const result = await Files.findOne({ where: { type: "0f", slug: slug } });
     if (result) {
       data.status = true;
       data.result = result;
@@ -185,16 +189,114 @@ exports.getDatagDrive = async (gid) => {
     request(url, function (error, response, body) {
       if (!error && response.statusCode == 200) {
         const parsed = queryString.parse(response.body);
-        if(parsed?.title){
+        /*if(parsed?.title){
           data.title = parsed?.title
         }
         if(parsed?.public){
           data.public = parsed?.public
-        }
-        resolve(data);
+        }*/
+        resolve(parsed);
       } else {
-        reject()
+        reject();
       }
     });
   });
+};
+exports.GoogleAuth = async () => {
+  const data_reload = {
+    client_id:
+      "140306668241-aqpt35s7vnu1s7enoachnetl534qa06i.apps.googleusercontent.com",
+    client_secret: "0ttwlBgybdxgn6fAt1DG9-A_",
+    refresh_token:
+      "1//04J8KtM8B2XIkCgYIARAAGAQSNwF-L9IrvddWNG4K1Kgl_qQ9f5ZXSGIQCOWnI-i6oXTxMVjEDx2nHGGFj-XDZEdpy0j8OkmGfyQ",
+    grant_type: "refresh_token",
+  };
+
+  let tem_access_token = `${__dirname}/access_token.json`;
+
+  if (fs.existsSync(tem_access_token)) {
+    let data_cache = await fs.readFileSync(tem_access_token, "utf8");
+    const parsed = JSON.parse(data_cache);
+    const datenow = Math.floor(Date.now() / 1000);
+
+    if (datenow - parsed?.date < 3500) {
+      return parsed;
+    }
+  }
+
+  const body = "";
+  const url = "https://www.googleapis.com/oauth2/v4/token";
+  return new Promise(function (resolve, reject) {
+    request.post(url, { form: data_reload }, function (err, response, body) {
+      const parsed = JSON.parse(response.body);
+      delete parsed.expires_in;
+      delete parsed.scope;
+      parsed.date = Math.floor(Date.now() / 1000);
+
+      fs.writeFileSync(tem_access_token, JSON.stringify(parsed), "utf8");
+      resolve(parsed);
+    });
+  });
+};
+exports.getSourceGdrive = async (gid) => {
+  const data = {};
+  const url = `https://docs.google.com/get_video_info?docid=${gid}`;
+  let token = await this.GoogleAuth();
+
+  return new Promise(function (resolve, reject) {
+    request(
+      {
+        url,
+        proxy: "http://qjqkvcqd-rotate:72gpvbukvn4v@p.webshare.io:80",
+        headers: {
+          Authorization: `${token?.token_type} ${token?.access_token}`,
+        },
+      },
+      function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+          const parsed = queryString.parse(response.body);
+          data.status = parsed.status;
+          if (parsed.status == "ok") {
+            data.title = parsed.title;
+
+            if (parsed.fmt_stream_map) {
+              const fmt_stream_map = parsed.fmt_stream_map.split(",");
+              fmt_stream_map.forEach((k, i) => {
+                const [q, link] = k.split("|");
+                const size = q
+                  .toString()
+                  .replace(37, 1080)
+                  .replace(22, 720)
+                  .replace(59, 480)
+                  .replace(18, 360);
+                if (size == 1080) {
+                  data.file_1080 = link;
+                }
+                if (size == 720) {
+                  data.file_720 = link;
+                }
+                if (size == 480) {
+                  data.file_480 = link;
+                }
+                if (size == 360) {
+                  data.file_360 = link;
+                }
+              });
+            }
+            data.cookie = JSON.stringify(response.headers["set-cookie"]);
+            data.date = new Date();
+          } else {
+            data.error_code = parsed.errorcode;
+            data.error_text = parsed.reason;
+            //console.log(parsed)
+          }
+          resolve(data);
+        } else {
+          data.status = false;
+        }
+      }
+    );
+  });
+
+  return data;
 };
