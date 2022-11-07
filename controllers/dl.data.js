@@ -66,38 +66,8 @@ module.exports = async (req, res) => {
       return res.json({ ...data, ...sv });
     }
 
-    console.log("slug", slug);
-    /* let source = await getSourceGdrive(file?.source);
-    if (source?.status == "ok") {
-      if (source?.cookie) {
-        source.cookie = source?.cookie
-          .replace('","', ";")
-          .replace('["', "")
-          .replace('"]', "");
-      }
-      let allow = ["file_1080", "file_720", "file_480", "file_360"];
-
-      for (const key in allow) {
-        let q = allow[key];
-        if (source[q] != "" || source[q] != null || source[q] != undefined) {
-          let code = `axel -H "Cookie: ${source.cookie}" -n 30 -o "${global.dir}/${file?.slug}_${q}.mp4" "${source[q]}"`;
-          shell.exec(code, { async: false, silent: false }, function (data) {
-            console.log(data);
-          });
-        }
-      }
-
-      return res.json(source);
-    } else {
-      return res.json({
-        status: false,
-        msg: "file_not_date",
-        source,
-        gid: file?.source,
-      });
-    }*/
     return res.json({
-      status: true,
+      status: false,
       file,
     });
   } catch (error) {

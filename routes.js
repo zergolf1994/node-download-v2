@@ -21,7 +21,7 @@ router.all("/rename", require("./controllers/rename"));
 //server
 router.get("/server/create", require("./controllers/server.create"));
 //gdrive info
-//router.get("/gdrive/info", require("./controllers/gdrive.info"));
+router.get("/gdrive/info", require("./controllers/gdrive.info"));
 
 router.all("*", function (req, res) {
   res.status(404).json({ status: false, msg: "page not found" });

@@ -18,6 +18,8 @@ module.exports = async (req, res) => {
   let no_uid = [];
   try {
     if (!sv_ip) return res.json({ status: false, msg: "no_query_sv_ip" });
+    let { dl_status, dl_dl_by, dl_dl_sort, dl_auto_cancle, dl_focus_uid } =
+      await SettingValue(true);
 
     const servers = await Servers.findAll({
       raw: true,
@@ -45,7 +47,68 @@ module.exports = async (req, res) => {
       },
     });
 
-    if (!server) return res.json({ status: false, msg: "server_is_busy" });
+    if (!server) {
+      //เช็ค process file
+      if (dl_auto_cancle) {
+        const sv = await Servers.findOne({
+          where: { sv_ip: sv_ip, type: "dlv2" },
+          raw: true,
+          attributes: ["id"],
+        });
+        if (sv?.id) {
+          let ovdl = await Progress.findOne({
+            where: {
+              sid: sv?.id,
+              type: "dlv2",
+              [Op.and]: Sequelize.literal(
+                `ABS(TIMESTAMPDIFF(SECOND , updatedAt , NOW())) >= ${
+                  dl_auto_cancle * 2
+                }`
+              ),
+            },
+            raw: true,
+          });
+          if (ovdl) {
+            shell.exec(
+              `sudo rm -rf ${global.dir}/public/${ovdl?.slug}/`,
+              { async: false, silent: false },
+              function (data) {}
+            );
+            //update files
+            await Files.update(
+              { status: 0, e_code: 333 },
+              {
+                where: { id: ovdl.fid },
+                silent: true,
+              }
+            );
+            // delete process
+            await Progress.destroy({ where: { id: ovdl?.id } });
+
+            await Servers.update(
+              { work: 0 },
+              {
+                where: { id: sv?.id },
+                silent: true,
+              }
+            );
+            await timeSleep();
+
+            shell.exec(
+              `bash ${global.dir}/shell/run.sh`,
+              { async: false, silent: false },
+              function (data) {}
+            );
+          }
+        }
+      }
+
+      return res.json({ status: false, msg: "server_is_busy" });
+    }
+    // check status all
+    if (dl_status != 1)
+      return res.json({ status: false, msg: `status_inactive` });
+
     if (!server?.folder)
       return res.json({ status: false, msg: "not_conf_folder" });
 
@@ -63,12 +126,35 @@ module.exports = async (req, res) => {
     file_where.type = { [Op.or]: ["gdrive", "direct"] };
 
     let file_limit = servers.length;
+    let set_order = [[Sequelize.literal("RAND()")]];
 
+    if (dl_dl_sort && dl_dl_by) {
+      let order_sort = dl_dl_sort == "asc" ? "ASC" : "DESC";
+      let order_by = "createdAt";
+      switch (dl_dl_by) {
+        case "size":
+          order_by = "filesize";
+          break;
+        case "view":
+          order_by = "views";
+          break;
+        case "update":
+          order_by = "viewedAt";
+          break;
+        case "viewat":
+          order_by = "updatedAt";
+          break;
+      }
+
+      set_order = [[order_by, order_sort]];
+    }
+
+    //console.log("start", sv_ip);
     await timeSleep(1);
 
     const files = await Files.findAll({
       where: file_where,
-      order: [["createdAt", "DESC"]],
+      order: set_order,
       limit: file_limit,
     });
 
@@ -82,13 +168,15 @@ module.exports = async (req, res) => {
     if (!file?.slug)
       return res.json({ status: false, msg: `files_not_empty`, e: 2 });
 
+    //console.log("slug", file?.slug);
     let process_data = {};
 
     process_data.quality = "default";
 
     if (file?.type == "gdrive") {
       let source = await getSourceGdrive(file?.source);
-      
+
+      //console.log("source", source);
       if (source?.status == "ok") {
         let allow = ["file_1080", "file_720", "file_480", "file_360"];
         let quality = [];
@@ -99,10 +187,10 @@ module.exports = async (req, res) => {
             quality.push(q.split("file_")[1]);
           }
         }
-        
-        if(quality.length > 0){
+
+        if (quality.length > 0) {
           //console.log(quality)
-          process_data.quality = quality.join(',');
+          process_data.quality = quality.join(",");
         }
       } else {
         return res.json({
@@ -110,7 +198,6 @@ module.exports = async (req, res) => {
           msg: "gdrive not data",
         });
       }
-
     }
 
     process_data.uid = file?.uid;

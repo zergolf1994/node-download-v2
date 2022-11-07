@@ -242,7 +242,7 @@ exports.getSourceGdrive = async (gid) => {
   const data = {};
   const url = `https://docs.google.com/get_video_info?docid=${gid}`;
   let token = await this.GoogleAuth();
-
+  //console.log("token", token);
   return new Promise(function (resolve, reject) {
     request(
       {
@@ -293,6 +293,7 @@ exports.getSourceGdrive = async (gid) => {
           resolve(data);
         } else {
           data.status = false;
+          resolve(data);
         }
       }
     );

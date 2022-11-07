@@ -38,6 +38,7 @@ module.exports = async (req, res) => {
     } else {
       data.status = 2;
     }
+    data.e_code = 0;
 
     await Files.update(data, {
       where: { slug },
@@ -66,7 +67,6 @@ module.exports = async (req, res) => {
         { async: false, silent: false },
         function (data) {}
       );
-
     }
 
     return res.json({ status: true, msg: "update_files_done" });
