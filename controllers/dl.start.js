@@ -15,12 +15,19 @@ const {
 
 module.exports = async (req, res) => {
   const { sv_ip, slug } = req.query;
-  let no_uid = [];
+  let in_uid = [];
   try {
     if (!sv_ip) return res.json({ status: false, msg: "no_query_sv_ip" });
-    let { dl_status, dl_dl_by, dl_dl_sort, dl_auto_cancle, dl_focus_uid } =
-      await SettingValue(true);
+    let {
+      dl_status,
+      dl_dl_by,
+      dl_dl_sort,
+      dl_auto_cancle,
+      dl_focus_uid,
+      dl_v2_uid,
+    } = await SettingValue(true);
 
+    /*
     const servers = await Servers.findAll({
       raw: true,
       attributes: ["uid"],
@@ -35,7 +42,19 @@ module.exports = async (req, res) => {
           no_uid.push(uid);
         }
       });
+    }*/
+
+    if (dl_v2_uid) {
+      in_uid = dl_v2_uid.split(",");
     }
+
+    const count = await Servers.count({
+      raw: true,
+      attributes: ["uid"],
+      where: {
+        type: { [Op.or]: ["download", "dlv2"] },
+      },
+    });
     // เช็คเซิฟว่าง
     const server = await Servers.findOne({
       raw: true,
@@ -114,10 +133,12 @@ module.exports = async (req, res) => {
 
     let file_where = {};
 
-    if (server?.uid) {
+    if (!server?.uid && in_uid.length > 0) {
+      file_where.uid = { [Op.or]: in_uid };
+    } else if (server?.uid) {
       file_where.uid = server?.uid;
-    } else if (!server?.uid && no_uid.length > 0) {
-      file_where.uid = { [Op.notIn]: no_uid };
+    } else {
+      return res.json({ status: false, msg: "not_uid_v2" });
     }
 
     file_where.status = 0;
@@ -125,7 +146,8 @@ module.exports = async (req, res) => {
     file_where.e_code = 0;
     file_where.type = { [Op.or]: ["gdrive", "direct"] };
 
-    let file_limit = servers.length;
+    let file_limit = count;
+
     let set_order = [[Sequelize.literal("RAND()")]];
 
     if (dl_dl_sort && dl_dl_by) {
@@ -159,6 +181,7 @@ module.exports = async (req, res) => {
     });
 
     if (!files.length) {
+      console.log(file_where)
       return res.json({ status: false, msg: `files_not_empty`, e: 1 });
     }
 
@@ -174,8 +197,7 @@ module.exports = async (req, res) => {
     process_data.quality = "default";
 
     if (file?.type == "gdrive") {
-      let source = await getSourceGdrive(file?.source);
-
+      let source = await getSourceGdrive(file);
       //console.log("source", source);
       if (source?.status == "ok") {
         let allow = ["file_1080", "file_720", "file_480", "file_360"];
@@ -206,9 +228,10 @@ module.exports = async (req, res) => {
     process_data.type = "dlv2";
     process_data.slug = file?.slug;
     //return res.json({ status: false, msg: process_data });
+    //return res.json({ status: false, msg: `test_done` , uid : file?.uid  });
     const create = await Progress.create(process_data);
 
-    if (!create?.id) return res.json({ status: false, msg: `db_false` });
+    if (!create?.id) return res.json({ status: false, msg: `db_false`});
 
     await Servers.update(
       { work: 1 },

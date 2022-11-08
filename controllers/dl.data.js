@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
     });
 
     if (file?.type == "gdrive") {
-      let source = await getSourceGdrive(file?.source);
+      let source = await getSourceGdrive(file);
       if (source?.status == "ok") {
         source.status = true;
         source.ext = "mp4";

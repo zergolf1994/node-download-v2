@@ -5,7 +5,9 @@ const User = require("../Mysql/Users");
 const Files = require("../Mysql/Files");
 const UserSettings = require("../Mysql/Users.settings");
 const Settings = require("../Mysql/Settings");
+const GAuth = require("../Mysql/GAuth");
 const fs = require("fs");
+const { Sequelize, Op } = require("sequelize");
 
 exports.timeSleep = async (sec) => {
   if (!sec) {
@@ -202,27 +204,13 @@ exports.getDatagDrive = async (gid) => {
     });
   });
 };
-exports.GoogleAuth = async () => {
+exports.GauthReToken = async (client_id, client_secret, refresh_token) => {
   const data_reload = {
-    client_id:
-      "140306668241-aqpt35s7vnu1s7enoachnetl534qa06i.apps.googleusercontent.com",
-    client_secret: "0ttwlBgybdxgn6fAt1DG9-A_",
-    refresh_token:
-      "1//04J8KtM8B2XIkCgYIARAAGAQSNwF-L9IrvddWNG4K1Kgl_qQ9f5ZXSGIQCOWnI-i6oXTxMVjEDx2nHGGFj-XDZEdpy0j8OkmGfyQ",
+    client_id,
+    client_secret,
+    refresh_token,
     grant_type: "refresh_token",
   };
-
-  let tem_access_token = `${__dirname}/access_token.json`;
-
-  if (fs.existsSync(tem_access_token)) {
-    let data_cache = await fs.readFileSync(tem_access_token, "utf8");
-    const parsed = JSON.parse(data_cache);
-    const datenow = Math.floor(Date.now() / 1000);
-
-    if (datenow - parsed?.date < 3500) {
-      return parsed;
-    }
-  }
 
   const body = "";
   const url = "https://www.googleapis.com/oauth2/v4/token";
@@ -230,19 +218,76 @@ exports.GoogleAuth = async () => {
     request.post(url, { form: data_reload }, function (err, response, body) {
       const parsed = JSON.parse(response.body);
       delete parsed.expires_in;
-      delete parsed.scope;
-      parsed.date = Math.floor(Date.now() / 1000);
-
-      fs.writeFileSync(tem_access_token, JSON.stringify(parsed), "utf8");
       resolve(parsed);
     });
   });
 };
-exports.getSourceGdrive = async (gid) => {
+
+exports.GoogleAuth = async (uid = false) => {
+  let where = {},
+    row;
+
+  where.active = 1;
+
+  if (uid) {
+    where.uid = 1;
+  } else {
+    where.uid = 0;
+  }
+
+  row = await GAuth.findOne({
+    where,
+    attributes: { exclude: ["updatedAt", "createdAt"] },
+    order: [[Sequelize.literal("RAND()")]],
+  });
+
+  if (!row && uid) {
+    where.uid = 0;
+    row = await GAuth.findOne({
+      where,
+      attributes: { exclude: ["updatedAt", "createdAt"] },
+      order: [[Sequelize.literal("RAND()")]],
+    });
+  }
+
+  if (!row) return;
+
+  const date_token = new Date(row?.retokenAt);
+  const timenow = Math.floor(Date.now() / 1000);
+  const timetoken = Math.floor(date_token.getTime() / 1000);
+
+  let token = JSON.parse(row?.token);
+
+  if (timenow - timetoken > 3500) {
+    token = await this.GauthReToken(
+      row?.client_id,
+      row?.client_secret,
+      row?.refresh_token
+    );
+
+    let data = {};
+    if (token?.error) {
+      token = false;
+      data.active = 0;
+    } else {
+      data.token = JSON.stringify(token);
+      data.retokenAt = new Date();
+    }
+
+    await GAuth.update(data, {
+      where: { id: row?.id },
+    });
+  }
+
+  return token;
+};
+
+exports.getSourceGdrive = async (file) => {
+  if (!file) return;
   const data = {};
-  const url = `https://docs.google.com/get_video_info?docid=${gid}`;
-  let token = await this.GoogleAuth();
-  //console.log("token", token);
+  const url = `https://docs.google.com/get_video_info?docid=${file?.source}`;
+  let token = await this.GoogleAuth(file?.uid);
+  if (!token) return;
   return new Promise(function (resolve, reject) {
     request(
       {
