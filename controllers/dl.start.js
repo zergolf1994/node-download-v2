@@ -205,8 +205,10 @@ module.exports = async (req, res) => {
 
         for (const key in allow) {
           let q = allow[key];
-          if (source[q] !== undefined) {
-            quality.push(q.split("file_")[1]);
+          if(!quality.length){
+            if (source[q] !== undefined) {
+              quality.push(q.split("file_")[1]);
+            }
           }
         }
 
