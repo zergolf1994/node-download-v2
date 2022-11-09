@@ -230,7 +230,7 @@ exports.GoogleAuth = async (uid = false) => {
   where.active = 1;
 
   if (uid) {
-    where.uid = 1;
+    where.uid = uid;
   } else {
     where.uid = 0;
   }
@@ -257,7 +257,6 @@ exports.GoogleAuth = async (uid = false) => {
   const timetoken = Math.floor(date_token.getTime() / 1000);
 
   let token = JSON.parse(row?.token);
-
   if (timenow - timetoken > 3500) {
     token = await this.GauthReToken(
       row?.client_id,
