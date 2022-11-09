@@ -80,9 +80,7 @@ module.exports = async (req, res) => {
               sid: sv?.id,
               type: "dlv2",
               [Op.and]: Sequelize.literal(
-                `ABS(TIMESTAMPDIFF(SECOND , updatedAt , NOW())) >= ${
-                  dl_auto_cancle * 2
-                }`
+                `ABS(TIMESTAMPDIFF(SECOND , updatedAt , NOW())) >= ${dl_auto_cancle}`
               ),
             },
             raw: true,
@@ -181,7 +179,7 @@ module.exports = async (req, res) => {
     });
 
     if (!files.length) {
-      console.log(file_where)
+      console.log(file_where);
       return res.json({ status: false, msg: `files_not_empty`, e: 1 });
     }
 
@@ -205,7 +203,7 @@ module.exports = async (req, res) => {
 
         for (const key in allow) {
           let q = allow[key];
-          if(!quality.length){
+          if (!quality.length) {
             if (source[q] !== undefined) {
               quality.push(q.split("file_")[1]);
             }
@@ -233,7 +231,7 @@ module.exports = async (req, res) => {
     //return res.json({ status: false, msg: `test_done` , uid : file?.uid  });
     const create = await Progress.create(process_data);
 
-    if (!create?.id) return res.json({ status: false, msg: `db_false`});
+    if (!create?.id) return res.json({ status: false, msg: `db_false` });
 
     await Servers.update(
       { work: 1 },
