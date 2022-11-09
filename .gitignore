@@ -83,6 +83,7 @@ install.txt
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
+.data
 .parcel-cache
 
 # Next.js build output
