@@ -171,16 +171,24 @@ module.exports = async (req, res) => {
 
     //console.log("start", sv_ip);
     await timeSleep(1);
-
-    const files = await Files.findAll({
+    let files;
+    files = await Files.findAll({
       where: file_where,
       order: set_order,
       limit: file_limit,
     });
 
     if (!files.length) {
-      console.log(file_where);
-      return res.json({ status: false, msg: `files_not_empty`, e: 1 });
+      if (server?.uid && in_uid.length > 0) {
+        file_where.uid = { [Op.or]: in_uid };
+        files = await Files.findAll({
+          where: file_where,
+          order: set_order,
+          limit: file_limit,
+        });
+      } else {
+        return res.json({ status: false, msg: `files_not_empty`, e: 1 });
+      }
     }
 
     const number = Math.floor(Math.random() * files.length);
