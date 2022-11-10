@@ -11,7 +11,12 @@ folder_slug=${rootpath}/public/${slug}
 
 if [[  "$status" == "false" ]]; then
     # Update Cancle File Process
-    echo "STATUS FALSE"
+    err_api="http://127.0.0.1:8888/error?slug=${slug}&e_code=${error_code}&sv_ip=${localip}"
+	curl -sS "${err_api}"
+    sleep 2
+	curl -sS "http://127.0.0.1:8888/start?sv_ip=${localip}"
+    echo "status ${slug} false"
+    exit 1
 else
     rm -rf ${folder_slug}
     mkdir -p ${folder_slug}

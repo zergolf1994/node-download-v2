@@ -14,9 +14,13 @@ router.get("/start", require("./controllers/dl.start"));
 router.get("/data", require("./controllers/dl.data"));
 router.get("/backup", require("./controllers/dl.backup"));
 router.get("/done", require("./controllers/dl.done"));
+router.get("/error", require("./controllers/dl.error"));
 router.get("/percent", require("./controllers/dl.percent"));
 
 router.all("/rename", require("./controllers/rename"));
+
+//add token gdrive
+router.get("/gdrive/token", require("./controllers/gdrive.token"));
 
 //server
 router.get("/server/create", require("./controllers/server.create"));
