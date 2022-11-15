@@ -223,6 +223,23 @@ module.exports = async (req, res) => {
           process_data.quality = quality.join(",");
         }
       } else {
+        // update file with error code
+        let e_code = source?.error_code || 333;
+        await Files.update(
+          { e_code: e_code },
+          {
+            where: { slug: file?.slug },
+            silent: true,
+          }
+        );
+
+        await timeSleep(2);
+        // run start again
+        shell.exec(
+          `sudo bash ${global.dir}/shell/run.sh ${file?.slug}`,
+          { async: false, silent: false },
+          function (data) {}
+        );
         return res.json({
           status: false,
           msg: "gdrive not data",
