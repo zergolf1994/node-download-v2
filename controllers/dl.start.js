@@ -226,6 +226,7 @@ module.exports = async (req, res) => {
         return res.json({
           status: false,
           msg: "gdrive not data",
+          slug: file?.slug,
         });
       }
     }
