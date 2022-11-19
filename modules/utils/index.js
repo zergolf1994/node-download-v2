@@ -10,4 +10,5 @@ module.exports = {
   AxiosDownloadStatus: require("./AxiosDownloadStatus"),
   GdriveUploadStatus: require("./GdriveUploadStatus"),
   VideoData: require("./VideoData"),
+  ResetServerWork: require("./ResetServerWork"),
 };

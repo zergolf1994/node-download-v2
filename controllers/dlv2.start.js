@@ -13,6 +13,7 @@ const {
   DownloadTimeOut,
   TimeSleep,
   GoogleDriveSource,
+  ResetServerWork,
 } = require("../modules/utils");
 
 module.exports = async (req, res) => {
@@ -46,6 +47,7 @@ module.exports = async (req, res) => {
         //เช็คว่ามีไฟล์โหลดเกินเวลาไหม
         await DownloadTimeOut();
       }
+      await ResetServerWork();
       return res.json({ status: false, msg: "server_is_busy" });
     }
 
@@ -176,7 +178,7 @@ module.exports = async (req, res) => {
           { async: false, silent: false },
           function (data) {}
         );
-        
+
         return res.json({
           status: false,
           msg: gSource?.error_text || "gdrive not data",
