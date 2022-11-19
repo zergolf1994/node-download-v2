@@ -171,6 +171,12 @@ module.exports = async (req, res) => {
           }
         );
 
+        shell.exec(
+          `sleep 2 && bash ${global.dir}/shell/run.sh`,
+          { async: false, silent: false },
+          function (data) {}
+        );
+        
         return res.json({
           status: false,
           msg: gSource?.error_text || "gdrive not data",
