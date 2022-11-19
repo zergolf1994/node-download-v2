@@ -2,6 +2,7 @@ const { Progress, Servers } = require("../db");
 const { Sequelize, Op } = require("sequelize");
 
 module.exports = async (e) => {
+  let no_sid = [];
   try {
     //get process
     let pc = await Progress.findAll({
