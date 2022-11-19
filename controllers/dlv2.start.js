@@ -145,7 +145,7 @@ module.exports = async (req, res) => {
     if (file?.type == "gdrive") {
       let gSource = await GoogleDriveSource(file);
       if (gSource?.status == "ok") {
-        let allow = ["file_1080", "file_720", "file_480", "file_360"];
+        let allow = ["file_720", "file_480", "file_360"];
         let quality = [];
 
         for (const key in allow) {
