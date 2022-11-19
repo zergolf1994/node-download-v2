@@ -3,13 +3,10 @@
 const path = require("path");
 const shell = require("shelljs");
 const fs = require("fs");
-const ffmpeg = require("fluent-ffmpeg");
 
-const Backup = require("../modules/Mysql/Backup");
-const Files = require("../modules/Mysql/Files");
-const { timeSleep } = require("../modules/Function");
-
-let fileInput;
+const { Servers, Progress, Files, Backup } = require("../modules/db");
+const { Sequelize, Op } = require("sequelize");
+const { WriteLog, TimeSleep, VideoData } = require("../modules/utils");
 
 module.exports = async (req, res) => {
   const { slug, quality } = req.query;
@@ -17,7 +14,6 @@ module.exports = async (req, res) => {
   try {
     if (!slug || !quality)
       return res.json({ status: false, msg: "not_data_backup" });
-
     // Get backup gid
     let tmp = `${global.dir}/public/${slug}/up_${slug}_file_${quality}.txt`;
     let matchGid = /Uploaded ([\w\-]{28,}) at/i;
@@ -26,26 +22,26 @@ module.exports = async (req, res) => {
     if (!matchGid.test(Read)) {
       return res.json({ status: false, msg: "not_match" });
     }
-
     const match = Read.match(matchGid);
     let gid = match[1];
 
     if (!gid) return res.json({ status: false, msg: "not_gid" });
-
     //find file
     const files = await Files.findOne({
       raw: true,
-      attributes: ["uid", "id", "slug"],
+      attributes: ["uid", "id", "slug", "duration"],
       where: {
         slug: slug,
       },
     });
 
     //get data video
-    fileInput = `${global.dir}/public/${slug}/${slug}_file_${quality}.mp4`;
-    let vdo_data = await getVideoData();
+    let vdo_data = await VideoData(
+      `${global.dir}/public/${slug}/${slug}_file_${quality}.mp4`
+    );
 
-    await timeSleep();
+    await TimeSleep(1);
+
     //check has backup
     const bu = await Backup.findOne({
       attributes: ["id"],
@@ -66,14 +62,22 @@ module.exports = async (req, res) => {
       data.fid = files?.id;
     }
 
+    if (!files?.duration) {
+      let data_update = {};
+      data_update.duration = Math.floor(vdo_data?.format?.duration) || 0;
+      await Backup.update(data_update, {
+        where: { id: files?.id },
+      });
+    }
+
     let dbtype = "create",
       update,
       create;
+
     if (bu?.id) {
       //update
       update = await Backup.update(data, {
         where: { id: bu?.id },
-        silent: true,
       });
       dbtype = "update";
     } else {
@@ -90,18 +94,7 @@ module.exports = async (req, res) => {
       return res.json({ status: true, msg: "update_backup_done" });
     }
   } catch (error) {
-    console.log(error);
-    return res.json({ status: false, msg: error.name });
+    await WriteLog(error);
+    return res.json({ status: false, msg: `error` });
   }
 };
-
-function getVideoData() {
-  return new Promise((resolve, reject) => {
-    ffmpeg(fileInput).ffprobe((err, data) => {
-      if (err) {
-        reject(err);
-      }
-      resolve(data);
-    });
-  });
-}

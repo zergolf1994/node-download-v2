@@ -4,36 +4,36 @@ const path = require("path");
 const shell = require("shelljs");
 const fs = require("fs");
 
-const Backup = require("../modules/Mysql/Backup");
-const Files = require("../modules/Mysql/Files");
-const Progress = require("../modules/Mysql/Progress");
-const Servers = require("../modules/Mysql/Servers");
-const { timeSleep } = require("../modules/Function");
-
-let fileInput;
+const { Servers, Progress, Files, Backup } = require("../modules/db");
+const { Sequelize, Op } = require("sequelize");
+const { WriteLog, TimeSleep, VideoData } = require("../modules/utils");
 
 module.exports = async (req, res) => {
   const { slug } = req.query;
 
   try {
     if (!slug) return res.json({ status: false, msg: "not_data_backup" });
-
-    let data = {};
+    let data = {},
+      sid;
 
     const proc = await Progress.findOne({
       where: { slug: slug, type: "dlv2" },
     });
 
-    await timeSleep();
-    //total backup
-    //check has backup
+    if (!proc) return res.json({ status: false, msg: "not_process" });
+
+    sid = proc?.sid;
+
+    await TimeSleep(2);
     const c_bu = await Backup.count({
       where: {
         slug,
       },
     });
 
-    if (c_bu > 1) {
+    if (!c_bu) {
+      data.status = 0;
+    } else if (c_bu > 1) {
       data.status = 4;
     } else {
       data.status = 2;
@@ -41,16 +41,15 @@ module.exports = async (req, res) => {
     data.e_code = 0;
 
     await Files.update(data, {
-      where: { slug },
+      where: { slug: slug },
       silent: true,
     });
 
-    // delete process
     await Progress.destroy({ where: { slug: slug, type: "dlv2" } });
 
-    await timeSleep();
-    //check
-    const procc = await Progress.count({ where: { sid: proc?.sid } });
+    await TimeSleep(2);
+
+    const procc = await Progress.count({ where: { sid: sid } });
 
     if (!procc) {
       //update server to not work
@@ -71,7 +70,7 @@ module.exports = async (req, res) => {
 
     return res.json({ status: true, msg: "update_files_done" });
   } catch (error) {
-    console.log(error);
-    return res.json({ status: false, msg: error.name });
+    await WriteLog(error);
+    return res.json({ status: false, msg: `error` });
   }
 };
