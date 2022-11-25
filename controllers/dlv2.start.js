@@ -125,6 +125,19 @@ module.exports = async (req, res) => {
     }
 
     if (!files.length) {
+      console.log("Check 2 Again!!");
+      delete file_where.uid;
+      file_where.e_code = 104;
+      files = await Files.findAll({
+        raw: true,
+        attributes: ["type", "source", "slug", "uid", "id"],
+        where: file_where,
+        order: set_order,
+        limit: file_limit,
+      });
+    }
+
+    if (!files.length) {
       // reset error 333
       await Files.update(
         { status: 0, e_code: 0 },
