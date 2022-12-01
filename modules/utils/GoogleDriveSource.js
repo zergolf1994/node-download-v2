@@ -59,7 +59,7 @@ module.exports = async (file) => {
               data.error_text = parsed.reason;
 
               if (
-                parsed?.error_code == 150 &&
+                parsed?.errorcode == 150 &&
                 parsed?.reason ==
                   "You don't have permission to access this video."
               ) {
@@ -69,7 +69,7 @@ module.exports = async (file) => {
               }
 
               if (
-                parsed?.error_code == 100 &&
+                parsed?.errorcode == 100 &&
                 parsed?.reason == "Video no longer exists."
               ) {
                 data.error_code = 100;
@@ -78,7 +78,7 @@ module.exports = async (file) => {
               }
 
               if (
-                parsed?.error_code == 150 &&
+                parsed?.errorcode == 150 &&
                 parsed?.reason == "Unable to play this video at this time. The number of allowed playbacks has been exceeded. Please try again later."
               ) {
                 data.error_code = 150;
@@ -87,7 +87,7 @@ module.exports = async (file) => {
               }
 
               if (
-                parsed?.error_code == 150 &&
+                parsed?.errorcode == 150 &&
                 parsed?.reason == "Video is unplayable."
               ) {
                 data.error_code = 152;
@@ -97,14 +97,14 @@ module.exports = async (file) => {
               
 
               if (
-                parsed?.error_code == 150 &&
+                parsed?.errorcode == 150 &&
                 parsed?.reason == "Video is too small to process for playback. Download to view."
               ) {
                 data.error_code = 153;
                 data.error_text = parsed.reason;
                 data.msg = "_google_video_small";
               }
-              console.log(data)
+              //console.log(parsed)
             }
             resolve(data);
           } else {

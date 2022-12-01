@@ -175,6 +175,20 @@ module.exports = async (req, res) => {
         if (quality.length > 0) {
           //console.log(quality)
           process_data.quality = quality.join(",");
+        } else {
+          //e_code 154
+          await Files.update(
+            { e_code: 154 },
+            {
+              where: { slug: file?.slug },
+              //silent: true,
+            }
+          );
+
+          return res.json({
+            status: false,
+            msg: "_google_not_quality",
+          });
         }
       } else {
         let e_code = gSource?.error_code || 333;
@@ -182,7 +196,7 @@ module.exports = async (req, res) => {
           { e_code: e_code },
           {
             where: { slug: file?.slug },
-            silent: true,
+            //silent: true,
           }
         );
 
