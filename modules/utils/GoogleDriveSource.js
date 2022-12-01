@@ -104,7 +104,7 @@ module.exports = async (file) => {
                 data.error_text = parsed.reason;
                 data.msg = "_google_video_small";
               }
-              //console.log(parsed)
+              console.log(data)
             }
             resolve(data);
           } else {
