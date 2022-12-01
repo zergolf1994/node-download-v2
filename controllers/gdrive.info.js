@@ -11,12 +11,19 @@ module.exports = async (req, res) => {
 
     let data_out = await driveInfo();
 
+    console.log("data_out",data_out)
+
     //Check 404
     let error404 = /Failed to get file/i;
+    let verifi = /Enter verification code/i;
 
     if (error404.test(data_out)) {
       const { errorcode } = await driveInfoRequset(gid);
+
       return res.json({ status: false, data_out, errorcode });
+    }else if (verifi.test(data_out)) {
+
+      return res.json({ status: false, msg:"_please_update_token" });
     }
 
     let data = await driveData(data_out);
@@ -40,15 +47,21 @@ module.exports = async (req, res) => {
     });
   }
   async function driveInfo(req, res) {
-    return new Promise(function (resolve, reject) {
-      shell.exec(
-        `gdrive info ${gid}`,
-        { async: true, silent: true },
-        function (code, stdout, stderr) {
-          resolve(stdout);
-        }
-      );
-    });
+
+    try {
+      return new Promise(function (resolve, reject) {
+        shell.exec(
+          `printf "test" | gdrive info ${gid}`,
+          { async: true, silent: true },
+          function (code, stdout, stderr) {
+            resolve(stdout);
+          }
+        );
+      });
+    } catch (error) {
+      //console.log(error)
+      return res.json({ status: false, msg: error.name });
+    }
   }
 
   async function driveData(data) {

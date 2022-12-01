@@ -57,6 +57,53 @@ module.exports = async (file) => {
             } else {
               data.error_code = parsed.errorcode;
               data.error_text = parsed.reason;
+
+              if (
+                parsed?.error_code == 150 &&
+                parsed?.reason ==
+                  "You don't have permission to access this video."
+              ) {
+                data.error_code = 151;
+                data.error_text = parsed.reason;
+                data.msg = "_google_private";
+              }
+
+              if (
+                parsed?.error_code == 100 &&
+                parsed?.reason == "Video no longer exists."
+              ) {
+                data.error_code = 100;
+                data.error_text = parsed.reason;
+                data.msg = "_google_delete";
+              }
+
+              if (
+                parsed?.error_code == 150 &&
+                parsed?.reason == "Unable to play this video at this time. The number of allowed playbacks has been exceeded. Please try again later."
+              ) {
+                data.error_code = 150;
+                data.error_text = parsed.reason;
+                data.msg = "_google_limit";
+              }
+
+              if (
+                parsed?.error_code == 150 &&
+                parsed?.reason == "Video is unplayable."
+              ) {
+                data.error_code = 152;
+                data.error_text = parsed.reason;
+                data.msg = "_google_unplayable";
+              }
+              
+
+              if (
+                parsed?.error_code == 150 &&
+                parsed?.reason == "Video is too small to process for playback. Download to view."
+              ) {
+                data.error_code = 153;
+                data.error_text = parsed.reason;
+                data.msg = "_google_video_small";
+              }
               //console.log(parsed)
             }
             resolve(data);
