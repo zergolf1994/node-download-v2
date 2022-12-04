@@ -79,7 +79,8 @@ module.exports = async (file) => {
 
               if (
                 parsed?.errorcode == 150 &&
-                parsed?.reason == "Unable to play this video at this time. The number of allowed playbacks has been exceeded. Please try again later."
+                parsed?.reason ==
+                  "Unable to play this video at this time. The number of allowed playbacks has been exceeded. Please try again later."
               ) {
                 data.error_code = 150;
                 data.error_text = parsed.reason;
@@ -94,15 +95,24 @@ module.exports = async (file) => {
                 data.error_text = parsed.reason;
                 data.msg = "_google_unplayable";
               }
-              
 
               if (
                 parsed?.errorcode == 150 &&
-                parsed?.reason == "Video is too small to process for playback. Download to view."
+                parsed?.reason ==
+                  "Video is too small to process for playback. Download to view."
               ) {
                 data.error_code = 153;
                 data.error_text = parsed.reason;
                 data.msg = "_google_video_small";
+              }
+
+              if (
+                parsed?.errorcode == 150 &&
+                parsed?.reason == "Video is still processing. Try again later."
+              ) {
+                data.error_code = 155;
+                data.error_text = parsed.reason;
+                data.msg = "_google_still_process";
               }
               //console.log(parsed)
             }
