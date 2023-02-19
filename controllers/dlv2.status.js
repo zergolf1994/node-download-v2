@@ -79,12 +79,12 @@ module.exports = async (req, res) => {
       if (GdriveStatus?.err) {
         console.error(slug, GdriveStatus?.err);
         // update server to inactive
-        await Servers.update(
+        /*await Servers.update(
           { active: 0 },
           {
             where: { id: pc?.sid },
           }
-        );
+        );*/
         return res.json({ status: false, error: GdriveStatus?.err });
       }
       data.upload = parseFloat(GdriveStatus?.percent);
